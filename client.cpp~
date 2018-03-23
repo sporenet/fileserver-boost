@@ -13,7 +13,7 @@ class TcpClient {
         boost::array<char, 4096> buf;
         boost::asio::streambuf request;
         boost::asio::streambuf ack;
-        std::ifstream upFile;
+        std::ifstream sourceFile;
         std::ofstream downFile;
         std::streamsize bytesReadTotal;
 
@@ -52,44 +52,41 @@ class TcpClient {
 
             std::cin >> operation;
 
-            // Quit or Exit
             if (operation == "quit" or operation == "exit") {
                 std::cout << "Goodbye~!" << std::endl;
                 exit(0);
             }
 
-            // List
             if (operation == "list" or operation == "ls") {
                 // Not Implemented
                 return requestToServer();
             }
 
-            // Upload
             if (operation == "upload" or operation == "up") {
                 std::cin >> fileName;
                 return sendFileRequest(fileName);
             }
 
-            // Download
             if (operation == "download" or operation == "down") {
                 std::cin >> fileName;
                 return recvFileRequest(fileName);
             }
 
-            // Wrong Operation
+            // Wrong operation
             std::cout << "Wrong operation, please try again" << std::endl;
             requestToServer();
         }
 
         void sendFileRequest(std::string& fileName) {
-            upFile.open(fileName.c_str(), std::ios_base::binary | std::ios_base::ate);
-            if (!upFile) {
+            sourceFile.open(fileName.c_str(),
+                    std::ios_base::binary | std::ios_base::ate);
+            if (!sourceFile) {
                 std::cout << "Failed to open " << fileName << std::endl;
                 return;
             }
 
-            size_t fileSize = upFile.tellg();
-            upFile.seekg(0);
+            size_t fileSize = sourceFile.tellg();
+            sourceFile.seekg(0);
 
             std::ostream requestStream(&request);
             requestStream << "u\n" << fileName << "\n" << fileSize << "\n\n";
@@ -98,7 +95,7 @@ class TcpClient {
 
             bytesReadTotal = 0;
 
-            async_write(socket, request,
+            boost::asio::async_write(socket, request,
                     boost::bind(&TcpClient::handleSendFile, this,
                         boost::asio::placeholders::error));
         }
@@ -116,14 +113,16 @@ class TcpClient {
                 return;
             }
 
-            async_write(socket, request,
+
+
+            boost::asio::async_write(socket, request,
                     boost::bind(&TcpClient::handleRecvFileRequestAckSub, this,
                         boost::asio::placeholders::error));
         }
 
         void handleRecvFileRequestAckSub(const boost::system::error_code& error) {
             if (!error) {
-                async_read_until(socket, ack, "\n\n",
+                boost::asio::async_read_until(socket, ack, "\n\n",
                         boost::bind(&TcpClient::handleRecvFileRequestAck, this,
                             boost::asio::placeholders::error,
                             boost::asio::placeholders::bytes_transferred));
@@ -214,17 +213,17 @@ class TcpClient {
 
         void handleSendFile(const boost::system::error_code& error) {
             if (!error) {
-                upFile.read(buf.c_array(), (std::streamsize)buf.size());
+                sourceFile.read(buf.c_array(), (std::streamsize)buf.size());
 
-                std::streamsize bytesRead = upFile.gcount();
+                std::streamsize bytesRead = sourceFile.gcount();
                 bytesReadTotal += bytesRead;
 
                 if (bytesRead < 0) {
                     std::cerr << "File read error" << std::endl;
-                    upFile.close();
+                    sourceFile.close();
                     return;
                 } else if (bytesRead == 0) {
-                    upFile.close();
+                    sourceFile.close();
                     requestToServer();
                     return;
                 }
@@ -232,7 +231,8 @@ class TcpClient {
                 std::cout << "Send " << bytesRead << "bytes, total "
                     << bytesReadTotal << "bytes" << std::endl;
 
-                async_write(socket, boost::asio::buffer(buf.c_array(), bytesRead),
+                boost::asio::async_write(socket,
+                        boost::asio::buffer(buf.c_array(), bytesRead),
                         boost::asio::transfer_exactly(bytesRead),
                         boost::bind(&TcpClient::handleSendFile, this,
                             boost::asio::placeholders::error));

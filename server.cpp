@@ -12,9 +12,12 @@
 class TcpConnection : public boost::enable_shared_from_this <TcpConnection> {
     private:
         boost::asio::streambuf request;
+        boost::asio::streambuf ack;
         boost::asio::ip::tcp::socket mySocket;
         boost::array<char, 4096> buf;
         std::ofstream outputFile;
+        std::ifstream inputFile;
+        std::streamsize bytesReadTotal;
 
         void handleRequest(const boost::system::error_code& error,
                 const size_t bytesTransferred) {
@@ -41,10 +44,12 @@ class TcpConnection : public boost::enable_shared_from_this <TcpConnection> {
 
                 std::streamsize bytesRead = 0;
 
-                std::cout << filePath << " size is " << fileSize << std::endl;
+                //std::cout << filePath << " size is " << fileSize << std::endl;
                 size_t pos = filePath.find_last_of('\\');
                 if (pos != std::string::npos)
                     filePath = filePath.substr(pos + 1);
+                std::cout << "Request for upload " << filePath << ": "
+                    << fileSize << "bytes" << std::endl;
 
                 outputFile.open(filePath.c_str(), std::ios_base::binary);
 
@@ -81,17 +86,68 @@ class TcpConnection : public boost::enable_shared_from_this <TcpConnection> {
                                 shared_from_this(), boost::asio::placeholders::error,
                                 boost::asio::placeholders::bytes_transferred, fileSize));
                 }
-            }
+            } else if (operation == "d") {
+                requestStream >> filePath;
+                requestStream.read(buf.c_array(), 2);
 
-            if (operation == "d") {
-                // Not implemented
-            }
+                inputFile.open(filePath.c_str(),
+                        std::ios_base::binary | std::ios_base::ate);
 
-            if (operation == "l") {
+                if (!inputFile) {
+                    std::cerr << "Error in " << __FUNCTION__ << ": failed to open file" << std::endl;
+                    return;
+                }
+
+                size_t fileSize = inputFile.tellg();
+                inputFile.seekg(0);
+
+                bytesReadTotal = 0;
+
+                std::ostream ackStream(&ack);
+                std::cout << "Request for download " << filePath << ": "
+                    << fileSize << "bytes" << std::endl;
+
+                ackStream << fileSize << "\n\n";
+
+                boost::asio::async_write(mySocket, ack,
+                        boost::bind(&TcpConnection::handleSendFile,
+                            shared_from_this(), boost::asio::placeholders::error));
+            } else if (operation == "l") {
                 // Not implemented
             }
         }
 
+        void handleSendFile(const boost::system::error_code& error) {
+            if (error) {
+                return handleError(__FUNCTION__, error);
+            }
+            inputFile.read(buf.c_array(), (std::streamsize)buf.size());
+
+            std::streamsize bytesRead = inputFile.gcount();
+            bytesReadTotal += bytesRead;
+
+            if (bytesRead < 0) {
+                std::cerr << "File read error" << std::endl;
+                inputFile.close();
+                return;
+            } else if (bytesRead == 0) {
+                inputFile.close();
+                async_read_until(mySocket, request, "\n\n",
+                        boost::bind(&TcpConnection::handleRequest,
+                            shared_from_this(), boost::asio::placeholders::error,
+                            boost::asio::placeholders::bytes_transferred));
+                return;
+            }
+
+            std::cout << __FUNCTION__ << " reads " << bytesRead << "bytes, total "
+                << bytesReadTotal << "bytes" << std::endl;
+
+            boost::asio::async_write(mySocket,
+                    boost::asio::buffer(buf.c_array(), bytesRead),
+                    boost::asio::transfer_exactly(bytesRead),
+                    boost::bind(&TcpConnection::handleSendFile, shared_from_this(),
+                        boost::asio::placeholders::error));
+        }
         void handleRecvFile(const boost::system::error_code& error,
                 std::size_t bytesTransferred, size_t fileSize) {
             if (error) {
