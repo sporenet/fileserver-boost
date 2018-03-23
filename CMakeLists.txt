@@ -1,0 +1,12 @@
+set(Boost_USE_STATIC_LIBS OFF)
+set(Boost_USE_MULTITHREADED ON)
+set(Boost_USE_STATIC_RUNTIME OFF)
+FIND_PACKAGE(Boost REQUIRED COMPONENTS system thread)
+
+if(Boost_FOUND)
+    include_directories(${Boost_INCLUDE_DIRS})
+    add_executable(./client/client.out client.cpp)
+    add_executable(./server/server.out server.cpp)
+    target_link_libraries(./client/client.out ${Boost_LIBRARIES})
+    target_link_libraries(./server/server.out ${Boost_LIBRARIES})
+endif()
