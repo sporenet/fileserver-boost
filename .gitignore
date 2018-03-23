@@ -36,4 +36,5 @@
 /cmake_install.cmake
 /CMakeFiles/
 
+# Backup file
 *.bak
