@@ -99,47 +99,47 @@ class TcpClient {
         }
 
         void recvFileRequest(std::string& fileName) {
-/*            std::ostream requestStream(&request);
-            requestStream << "d\n" << fileName << "\n\n";
-            std::cout << "Request size: " << request.size()
-                << "bytes" << std::endl;
+            /*            std::ostream requestStream(&request);
+                          requestStream << "d\n" << fileName << "\n\n";
+                          std::cout << "Request size: " << request.size()
+                          << "bytes" << std::endl;
 
-            boost::asio::async_write(socket, request,
-                    boost::bind(&TcpClient::handleWriteFile, this,
-                        boost::asio::placeholders::error));
+                          boost::asio::async_write(socket, request,
+                          boost::bind(&TcpClient::handleWriteFile, this,
+                          boost::asio::placeholders::error));
 
             // Not implemented
-*/        }
+             */        }
 
-        void handleSendFile(const boost::system::error_code& error) {
-            if (!error) {
-                sourceFile.read(buf.c_array(), (std::streamsize)buf.size());
+            void handleSendFile(const boost::system::error_code& error) {
+                if (!error) {
+                    sourceFile.read(buf.c_array(), (std::streamsize)buf.size());
 
-                std::streamsize bytesRead = sourceFile.gcount();
-                bytesReadTotal += bytesRead;
+                    std::streamsize bytesRead = sourceFile.gcount();
+                    bytesReadTotal += bytesRead;
 
-                if (bytesRead < 0) {
-                    std::cerr << "File read error" << std::endl;
-                    sourceFile.close();
-                    return;
-                } else if (bytesRead == 0) {
-                    sourceFile.close();
-                    requestToServer();
-                    return;
+                    if (bytesRead < 0) {
+                        std::cerr << "File read error" << std::endl;
+                        sourceFile.close();
+                        return;
+                    } else if (bytesRead == 0) {
+                        sourceFile.close();
+                        requestToServer();
+                        return;
+                    }
+
+                    std::cout << "Send " << bytesRead << "bytes, total "
+                        << bytesReadTotal << "bytes" << std::endl;
+
+                    boost::asio::async_write(socket,
+                            boost::asio::buffer(buf.c_array(), bytesRead),
+                            boost::asio::transfer_exactly(bytesRead),
+                            boost::bind(&TcpClient::handleSendFile, this,
+                                boost::asio::placeholders::error));
+                } else {
+                    std::cerr << "Error: " << error.message() << std::endl;
                 }
-
-                std::cout << "Send " << bytesRead << "bytes, total "
-                    << bytesReadTotal << "bytes" << std::endl;
-
-                boost::asio::async_write(socket,
-                        boost::asio::buffer(buf.c_array(), bytesRead),
-                        boost::asio::transfer_exactly(bytesRead),
-                        boost::bind(&TcpClient::handleSendFile, this,
-                            boost::asio::placeholders::error));
-            } else {
-                std::cerr << "Error: " << error.message() << std::endl;
             }
-        }
 
     public:
         TcpClient(boost::asio::io_service& ioService, const std::string& server,
@@ -152,18 +152,14 @@ class TcpClient {
 };
 
 int main(int argc, char *argv[]) {
-    try {
-        if (argc != 3) {
-            std::cout << "Usage: ip port#" << std::endl;
-            return 0;
-        }
-
-        boost::asio::io_service ioService;
-        TcpClient client(ioService, argv[1], argv[2]);
-        ioService.run();
-    } catch (std::exception& e) {
-        std::cerr << e.what() << std::endl;
+    if (argc != 3) {
+        std::cout << "Usage: ip port#" << std::endl;
+        return 0;
     }
+
+    boost::asio::io_service ioService;
+    TcpClient client(ioService, argv[1], argv[2]);
+    ioService.run();
 
     return 0;
 }

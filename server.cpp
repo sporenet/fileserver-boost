@@ -186,20 +186,16 @@ class TcpServer : private boost::noncopyable {
 };
 
 int main(int argc, char* argv[]) {
-    try {
-        if (argc != 2) {
-            std::cout << "Usage: ip" << std::endl;
-            return 0;
-        }
-
-        int port = atoi(argv[1]);
-
-        std::cout << argv[0] << " listen on port " << port << std::endl;
-        TcpServer *myTcpServer = new TcpServer(port);
-        delete myTcpServer;
-    } catch (std::exception& e) {
-        std::cerr << e.what() << std::endl;
+    if (argc != 2) {
+        std::cout << "Usage: ip" << std::endl;
+        return 0;
     }
+
+    int port = atoi(argv[1]);
+
+    std::cout << argv[0] << " listen on port " << port << std::endl;
+    TcpServer *myTcpServer = new TcpServer(port);
+    delete myTcpServer;
 
     return 0;
 }

@@ -99,59 +99,59 @@ depend:
 .PHONY : depend
 
 #=============================================================================
-# Target rules for targets named ./client/client.out
+# Target rules for targets named client/client.out
 
 # Build rule for target.
-./client/client.out: cmake_check_build_system
-	$(MAKE) -f CMakeFiles/Makefile2 ./client/client.out
-.PHONY : ./client/client.out
+client/client.out: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 client/client.out
+.PHONY : client/client.out
 
 # fast build rule for target.
-./client/client.out/fast:
-	$(MAKE) -f CMakeFiles/./client/client.out.dir/build.make CMakeFiles/./client/client.out.dir/build
-.PHONY : ./client/client.out/fast
+client/client.out/fast:
+	$(MAKE) -f CMakeFiles/client/client.out.dir/build.make CMakeFiles/client/client.out.dir/build
+.PHONY : client/client.out/fast
 
 #=============================================================================
-# Target rules for targets named ./server/server.out
+# Target rules for targets named server/server.out
 
 # Build rule for target.
-./server/server.out: cmake_check_build_system
-	$(MAKE) -f CMakeFiles/Makefile2 ./server/server.out
-.PHONY : ./server/server.out
+server/server.out: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 server/server.out
+.PHONY : server/server.out
 
 # fast build rule for target.
-./server/server.out/fast:
-	$(MAKE) -f CMakeFiles/./server/server.out.dir/build.make CMakeFiles/./server/server.out.dir/build
-.PHONY : ./server/server.out/fast
+server/server.out/fast:
+	$(MAKE) -f CMakeFiles/server/server.out.dir/build.make CMakeFiles/server/server.out.dir/build
+.PHONY : server/server.out/fast
 
 # target to build an object file
 client.o:
-	$(MAKE) -f CMakeFiles/./client/client.out.dir/build.make CMakeFiles/./client/client.out.dir/client.o
+	$(MAKE) -f CMakeFiles/client/client.out.dir/build.make CMakeFiles/client/client.out.dir/client.o
 .PHONY : client.o
 
 # target to preprocess a source file
 client.i:
-	$(MAKE) -f CMakeFiles/./client/client.out.dir/build.make CMakeFiles/./client/client.out.dir/client.i
+	$(MAKE) -f CMakeFiles/client/client.out.dir/build.make CMakeFiles/client/client.out.dir/client.i
 .PHONY : client.i
 
 # target to generate assembly for a file
 client.s:
-	$(MAKE) -f CMakeFiles/./client/client.out.dir/build.make CMakeFiles/./client/client.out.dir/client.s
+	$(MAKE) -f CMakeFiles/client/client.out.dir/build.make CMakeFiles/client/client.out.dir/client.s
 .PHONY : client.s
 
 # target to build an object file
 server.o:
-	$(MAKE) -f CMakeFiles/./server/server.out.dir/build.make CMakeFiles/./server/server.out.dir/server.o
+	$(MAKE) -f CMakeFiles/server/server.out.dir/build.make CMakeFiles/server/server.out.dir/server.o
 .PHONY : server.o
 
 # target to preprocess a source file
 server.i:
-	$(MAKE) -f CMakeFiles/./server/server.out.dir/build.make CMakeFiles/./server/server.out.dir/server.i
+	$(MAKE) -f CMakeFiles/server/server.out.dir/build.make CMakeFiles/server/server.out.dir/server.i
 .PHONY : server.i
 
 # target to generate assembly for a file
 server.s:
-	$(MAKE) -f CMakeFiles/./server/server.out.dir/build.make CMakeFiles/./server/server.out.dir/server.s
+	$(MAKE) -f CMakeFiles/server/server.out.dir/build.make CMakeFiles/server/server.out.dir/server.s
 .PHONY : server.s
 
 # Help Target
@@ -160,10 +160,10 @@ help:
 	@echo "... all (the default if no target is provided)"
 	@echo "... clean"
 	@echo "... depend"
-	@echo "... ./client/client.out"
-	@echo "... ./server/server.out"
+	@echo "... client/client.out"
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
+	@echo "... server/server.out"
 	@echo "... client.o"
 	@echo "... client.i"
 	@echo "... client.s"
