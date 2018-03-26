@@ -38,3 +38,10 @@
 
 # Backup file
 *.bak
+
+# Test file
+/client1/*.txt
+/client2/*.txt
+/server/*.txt
+
+*~

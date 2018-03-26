@@ -1,6 +1,7 @@
 #include <iostream>
 #include <string>
 #include <fstream>
+#include <vector>
 #include <boost/array.hpp>
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
@@ -194,8 +195,8 @@ class TcpConnection : public boost::enable_shared_from_this <TcpConnection> {
         }
 
     public:
-        TcpConnection(boost::asio::io_service& io_service)
-            : mySocket(io_service) {}
+        TcpConnection(boost::asio::io_service& ioService)
+            : mySocket(ioService) {}
 
         void start() {
             std::cout << __FUNCTION__ << std::endl;
@@ -211,33 +212,56 @@ class TcpConnection : public boost::enable_shared_from_this <TcpConnection> {
 };
 
 class TcpServer : private boost::noncopyable {
+typedef boost::shared_ptr<TcpConnection> ptrTcpConnection;
     private:
         boost::asio::io_service ioService;
         boost::asio::ip::tcp::acceptor acceptor;
+        ptrTcpConnection newConnection;
 
     public:
-        typedef boost::shared_ptr <TcpConnection> ptrTcpConnection;
+//        typedef boost::shared_ptr<TcpConnection> ptrTcpConnection;
 
-        TcpServer(unsigned short port) : acceptor(ioService,
-                boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), port), true) {
-            ptrTcpConnection newConnection(new TcpConnection(ioService));
-            acceptor.async_accept(newConnection->socket(),
-                    boost::bind(&TcpServer::handleAccept, this, newConnection,
-                        boost::asio::placeholders::error));
-            ioService.run();
+        TcpServer(unsigned short port) :
+            acceptor(ioService,
+                    boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), port), true),
+            newConnection(new TcpConnection(ioService)) {
+                //ptrTcpConnection newConnection(new TcpConnection(ioService));
+                //            acceptor.async_accept(newConnection->socket(),
+                //                    boost::bind(&TcpServer::handleAccept, this, newConnection,
+                //                        boost::asio::placeholders::error));
+                //            ioService.run();
+                acceptor.async_accept(newConnection->socket(),
+                        boost::bind(&TcpServer::handleAccept, this,
+                            boost::asio::placeholders::error));
         }
 
-        void handleAccept(ptrTcpConnection currentConnection,
-                const boost::system::error_code& error) {
+        void handleAccept(const boost::system::error_code& error) {
             std::cout << __FUNCTION__ << " " << error << ", " <<
                 error.message() << std::endl;
             if (!error) {
-                currentConnection->start();
+                newConnection->start();
+                newConnection.reset(new TcpConnection(ioService));
+                acceptor.async_accept(newConnection->socket(),
+                        boost::bind(&TcpServer::handleAccept, this,
+                            boost::asio::placeholders::error));
             }
         }
 
-        ~TcpServer()
-        {
+        void run() {
+            std::vector<boost::shared_ptr<boost::thread> > threads;
+            for (std::size_t i = 0; i < 2; i++) {
+                boost::shared_ptr<boost::thread> thread(new boost::thread(
+                            boost::bind(&boost::asio::io_service::run, &ioService)));
+                threads.push_back(thread);
+            }
+
+            for (std::size_t i = 0; i < threads.size(); i++) {
+                threads[i]->join();
+            }
+//            ioService.run();
+        }
+
+        void stop() {
             ioService.stop();
         }
 };
@@ -252,8 +276,9 @@ int main(int argc, char* argv[]) {
         int port = atoi(argv[1]);
 
         std::cout << argv[0] << " listen on port " << port << std::endl;
-        TcpServer *myTcpServer = new TcpServer(port);
-        delete myTcpServer;
+        TcpServer myTcpServer(port);
+        myTcpServer.run();
+        myTcpServer.stop();
     } catch (std::exception& e) {
         std::cerr << e.what() << std::endl;
     }
