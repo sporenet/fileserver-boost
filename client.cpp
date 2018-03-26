@@ -67,13 +67,13 @@ class TcpClient {
             // Upload
             if (operation == "upload" or operation == "up") {
                 std::cin >> fileName;
-                return sendFileRequest(fileName);
+                return fileSendRequest(fileName);
             }
 
             // Download
             if (operation == "download" or operation == "down") {
                 std::cin >> fileName;
-                return recvFileRequest(fileName);
+                return fileRecvRequest(fileName);
             }
 
             // Wrong Operation
@@ -81,7 +81,7 @@ class TcpClient {
             requestToServer();
         }
 
-        void sendFileRequest(std::string& fileName) {
+        void fileSendRequest(std::string& fileName) {
             upFile.open(fileName.c_str(), std::ios_base::binary | std::ios_base::ate);
             if (!upFile) {
                 std::cout << "Failed to open " << fileName << std::endl;
@@ -99,11 +99,11 @@ class TcpClient {
             bytesReadTotal = 0;
 
             async_write(socket, request,
-                    boost::bind(&TcpClient::handleSendFile, this,
+                    boost::bind(&TcpClient::handleFileSend, this,
                         boost::asio::placeholders::error));
         }
 
-        void recvFileRequest(std::string& fileName) {
+        void fileRecvRequest(std::string& fileName) {
             std::ostream requestStream(&request);
             requestStream << "d\n" << fileName << "\n\n";
             std::cout << "Request size: " << request.size()
@@ -117,14 +117,14 @@ class TcpClient {
             }
 
             async_write(socket, request,
-                    boost::bind(&TcpClient::handleRecvFileRequestAckSub, this,
+                    boost::bind(&TcpClient::handleFileRecvAckSub, this,
                         boost::asio::placeholders::error));
         }
 
-        void handleRecvFileRequestAckSub(const boost::system::error_code& error) {
+        void handleFileRecvAckSub(const boost::system::error_code& error) {
             if (!error) {
                 async_read_until(socket, ack, "\n\n",
-                        boost::bind(&TcpClient::handleRecvFileRequestAck, this,
+                        boost::bind(&TcpClient::handleFileRecvAck, this,
                             boost::asio::placeholders::error,
                             boost::asio::placeholders::bytes_transferred));
             } else {
@@ -132,7 +132,7 @@ class TcpClient {
             }
         }
 
-        void handleRecvFileRequestAck(const boost::system::error_code& error,
+        void handleFileRecvAck(const boost::system::error_code& error,
                 const size_t bytesTransferred) {
             if (!error) {
                 std::istream ackStream(&ack);
@@ -163,13 +163,13 @@ class TcpClient {
                 } else if (remainBytes >= buf.size()) {
                     // 읽어야 될 남은 양이 buf.size()보다 크거나 같음
                     async_read(socket, boost::asio::buffer(buf.c_array(), buf.size()),
-                            boost::bind(&TcpClient::handleRecvFile, this,
+                            boost::bind(&TcpClient::handleFileRecv, this,
                                 boost::asio::placeholders::error,
                                 boost::asio::placeholders::bytes_transferred, fileSize));
                 } else {
                     // 읽어야 될 남은 양이 buf.size()보다 작음
                     async_read(socket, boost::asio::buffer(buf.c_array(), remainBytes),
-                            boost::bind(&TcpClient::handleRecvFile, this,
+                            boost::bind(&TcpClient::handleFileRecv, this,
                                 boost::asio::placeholders::error,
                                 boost::asio::placeholders::bytes_transferred, fileSize));
                 }
@@ -178,7 +178,7 @@ class TcpClient {
             }
         }
 
-        void handleRecvFile(const boost::system::error_code& error,
+        void handleFileRecv(const boost::system::error_code& error,
                 size_t bytesTransferred, size_t fileSize) {
             if (!error) {
                 if (bytesTransferred >= 0) {
@@ -197,13 +197,13 @@ class TcpClient {
                 if (remainBytes >= buf.size()) {
                     // 읽어야 될 남은 양이 buf.size()보다 큼
                     async_read(socket, boost::asio::buffer(buf.c_array(), buf.size()),
-                            boost::bind(&TcpClient::handleRecvFile, this,
+                            boost::bind(&TcpClient::handleFileRecv, this,
                                 boost::asio::placeholders::error,
                                 boost::asio::placeholders::bytes_transferred, fileSize));
                 } else {
                     // 읽어야 될 남은 양이 buf.size()보다 작음
                     async_read(socket, boost::asio::buffer(buf.c_array(), remainBytes),
-                            boost::bind(&TcpClient::handleRecvFile, this,
+                            boost::bind(&TcpClient::handleFileRecv, this,
                                 boost::asio::placeholders::error,
                                 boost::asio::placeholders::bytes_transferred, fileSize));
                 }
@@ -212,7 +212,7 @@ class TcpClient {
             }
         }
 
-        void handleSendFile(const boost::system::error_code& error) {
+        void handleFileSend(const boost::system::error_code& error) {
             if (!error) {
                 upFile.read(buf.c_array(), (std::streamsize)buf.size());
 
@@ -234,7 +234,7 @@ class TcpClient {
 
                 async_write(socket, boost::asio::buffer(buf.c_array(), bytesRead),
                         boost::asio::transfer_exactly(bytesRead),
-                        boost::bind(&TcpClient::handleSendFile, this,
+                        boost::bind(&TcpClient::handleFileSend, this,
                             boost::asio::placeholders::error));
             } else {
                 std::cerr << "Error: " << error.message() << std::endl;

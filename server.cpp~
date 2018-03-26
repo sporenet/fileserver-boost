@@ -15,8 +15,8 @@ class TcpConnection : public boost::enable_shared_from_this <TcpConnection> {
         boost::asio::streambuf ack;
         boost::asio::ip::tcp::socket mySocket;
         boost::array<char, 4096> buf;
-        std::ofstream outFile;
-        std::ifstream inFile;
+        std::ofstream outputFile;
+        std::ifstream inputFile;
         std::streamsize bytesReadTotal;
 
         void handleRequest(const boost::system::error_code& error,
@@ -51,7 +51,7 @@ class TcpConnection : public boost::enable_shared_from_this <TcpConnection> {
                 std::cout << "Request for upload " << filePath << ": "
                     << fileSize << "bytes" << std::endl;
 
-                outFile.open(filePath.c_str(), std::ios_base::binary);
+                outputFile.open(filePath.c_str(), std::ios_base::binary);
 
                 // request stream의 잔여 바이트를 파일에 씀
                 // async_read_until의 동작때문
@@ -61,14 +61,14 @@ class TcpConnection : public boost::enable_shared_from_this <TcpConnection> {
                     std::cout << __FUNCTION__ << " writes " <<
                         requestStream.gcount() << "bytes, total " << bytesRead
                         << "bytes" << std::endl;
-                    outFile.write(buf.c_array(), requestStream.gcount());
+                    outputFile.write(buf.c_array(), requestStream.gcount());
                 } while (requestStream.gcount() > 0);
 
                 size_t remainBytes = fileSize - bytesRead;
 
                 if (remainBytes == 0) {
                     // 다 읽음
-                    outFile.close();
+                    outputFile.close();
                     async_read_until(mySocket, request, "\n\n",
                             boost::bind(&TcpConnection::handleRequest,
                                 shared_from_this(), boost::asio::placeholders::error,
@@ -76,13 +76,13 @@ class TcpConnection : public boost::enable_shared_from_this <TcpConnection> {
                 } else if (remainBytes >= buf.size()) {
                     // 읽어야 될 남은 양이 buf.size()보다 크거나 같음
                     async_read(mySocket, boost::asio::buffer(buf.c_array(), buf.size()),
-                            boost::bind(&TcpConnection::handleFileRecv,
+                            boost::bind(&TcpConnection::handleRecvFile,
                                 shared_from_this(), boost::asio::placeholders::error,
                                 boost::asio::placeholders::bytes_transferred, fileSize));
                 } else {
                     // 읽어야 될 남은 양이 buf.size()보다 작음
                     async_read(mySocket, boost::asio::buffer(buf.c_array(), remainBytes),
-                            boost::bind(&TcpConnection::handleFileRecv,
+                            boost::bind(&TcpConnection::handleRecvFile,
                                 shared_from_this(), boost::asio::placeholders::error,
                                 boost::asio::placeholders::bytes_transferred, fileSize));
                 }
@@ -90,16 +90,16 @@ class TcpConnection : public boost::enable_shared_from_this <TcpConnection> {
                 requestStream >> filePath;
                 requestStream.read(buf.c_array(), 2);
 
-                inFile.open(filePath.c_str(),
+                inputFile.open(filePath.c_str(),
                         std::ios_base::binary | std::ios_base::ate);
 
-                if (!inFile) {
+                if (!inputFile) {
                     std::cerr << "Error in " << __FUNCTION__ << ": failed to open file" << std::endl;
                     return;
                 }
 
-                size_t fileSize = inFile.tellg();
-                inFile.seekg(0);
+                size_t fileSize = inputFile.tellg();
+                inputFile.seekg(0);
 
                 bytesReadTotal = 0;
 
@@ -110,28 +110,28 @@ class TcpConnection : public boost::enable_shared_from_this <TcpConnection> {
                 ackStream << fileSize << "\n\n";
 
                 boost::asio::async_write(mySocket, ack,
-                        boost::bind(&TcpConnection::handleFileSend,
+                        boost::bind(&TcpConnection::handleSendFile,
                             shared_from_this(), boost::asio::placeholders::error));
             } else if (operation == "l") {
                 // Not implemented
             }
         }
 
-        void handleFileSend(const boost::system::error_code& error) {
+        void handleSendFile(const boost::system::error_code& error) {
             if (error) {
                 return handleError(__FUNCTION__, error);
             }
-            inFile.read(buf.c_array(), (std::streamsize)buf.size());
+            inputFile.read(buf.c_array(), (std::streamsize)buf.size());
 
-            std::streamsize bytesRead = inFile.gcount();
+            std::streamsize bytesRead = inputFile.gcount();
             bytesReadTotal += bytesRead;
 
             if (bytesRead < 0) {
                 std::cerr << "File read error" << std::endl;
-                inFile.close();
+                inputFile.close();
                 return;
             } else if (bytesRead == 0) {
-                inFile.close();
+                inputFile.close();
                 async_read_until(mySocket, request, "\n\n",
                         boost::bind(&TcpConnection::handleRequest,
                             shared_from_this(), boost::asio::placeholders::error,
@@ -145,22 +145,22 @@ class TcpConnection : public boost::enable_shared_from_this <TcpConnection> {
             boost::asio::async_write(mySocket,
                     boost::asio::buffer(buf.c_array(), bytesRead),
                     boost::asio::transfer_exactly(bytesRead),
-                    boost::bind(&TcpConnection::handleFileSend, shared_from_this(),
+                    boost::bind(&TcpConnection::handleSendFile, shared_from_this(),
                         boost::asio::placeholders::error));
         }
-        void handleFileRecv(const boost::system::error_code& error,
+        void handleRecvFile(const boost::system::error_code& error,
                 std::size_t bytesTransferred, size_t fileSize) {
             if (error) {
                 return handleError(__FUNCTION__, error);
             }
 
             if (bytesTransferred >= 0) {
-                outFile.write(buf.c_array(), (std::streamsize) bytesTransferred);
+                outputFile.write(buf.c_array(), (std::streamsize) bytesTransferred);
                 std::cout << __FUNCTION__ << " writes " << bytesTransferred
-                    << "bytes, total " << outFile.tellp() << "bytes" << std::endl;
+                    << "bytes, total " << outputFile.tellp() << "bytes" << std::endl;
 
-                if (outFile.tellp() >= (std::streamsize)fileSize) {
-                    outFile.close();
+                if (outputFile.tellp() >= (std::streamsize)fileSize) {
+                    outputFile.close();
                     async_read_until(mySocket, request, "\n\n",
                             boost::bind(&TcpConnection::handleRequest,
                                 shared_from_this(), boost::asio::placeholders::error,
@@ -169,18 +169,18 @@ class TcpConnection : public boost::enable_shared_from_this <TcpConnection> {
                 }
             }
 
-            size_t remainBytes = fileSize - outFile.tellp();
+            size_t remainBytes = fileSize - outputFile.tellp();
 
             if (remainBytes >= buf.size()) {
                 // 읽어야 될 남은 양이 buf.size()보다 큼
                 async_read(mySocket, boost::asio::buffer(buf.c_array(), buf.size()),
-                        boost::bind(&TcpConnection::handleFileRecv,
+                        boost::bind(&TcpConnection::handleRecvFile,
                             shared_from_this(), boost::asio::placeholders::error,
                             boost::asio::placeholders::bytes_transferred, fileSize));
             } else {
                 // 읽어야 될 남은 양이 buf.size()보다 작음
                 async_read(mySocket, boost::asio::buffer(buf.c_array(), remainBytes),
-                        boost::bind(&TcpConnection::handleFileRecv,
+                        boost::bind(&TcpConnection::handleRecvFile,
                             shared_from_this(), boost::asio::placeholders::error,
                             boost::asio::placeholders::bytes_transferred, fileSize));
             }
