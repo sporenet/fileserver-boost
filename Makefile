@@ -156,6 +156,21 @@ client.s:
 .PHONY : client.s
 
 # target to build an object file
+connection.o:
+	$(MAKE) -f CMakeFiles/server/server.out.dir/build.make CMakeFiles/server/server.out.dir/connection.o
+.PHONY : connection.o
+
+# target to preprocess a source file
+connection.i:
+	$(MAKE) -f CMakeFiles/server/server.out.dir/build.make CMakeFiles/server/server.out.dir/connection.i
+.PHONY : connection.i
+
+# target to generate assembly for a file
+connection.s:
+	$(MAKE) -f CMakeFiles/server/server.out.dir/build.make CMakeFiles/server/server.out.dir/connection.s
+.PHONY : connection.s
+
+# target to build an object file
 server.o:
 	$(MAKE) -f CMakeFiles/server/server.out.dir/build.make CMakeFiles/server/server.out.dir/server.o
 .PHONY : server.o
@@ -184,6 +199,9 @@ help:
 	@echo "... client.o"
 	@echo "... client.i"
 	@echo "... client.s"
+	@echo "... connection.o"
+	@echo "... connection.i"
+	@echo "... connection.s"
 	@echo "... server.o"
 	@echo "... server.i"
 	@echo "... server.s"
