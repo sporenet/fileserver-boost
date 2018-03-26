@@ -7,6 +7,7 @@
 #include <boost/function.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/enable_shared_from_this.hpp>
+#include <boost/thread.hpp>
 
 
 class TcpConnection : public boost::enable_shared_from_this <TcpConnection> {
@@ -242,16 +243,20 @@ class TcpServer : private boost::noncopyable {
 };
 
 int main(int argc, char* argv[]) {
-    if (argc != 2) {
-        std::cout << "Usage: ip" << std::endl;
-        return 0;
+    try {
+        if (argc != 2) {
+            std::cout << "Usage: ip" << std::endl;
+            return 0;
+        }
+
+        int port = atoi(argv[1]);
+
+        std::cout << argv[0] << " listen on port " << port << std::endl;
+        TcpServer *myTcpServer = new TcpServer(port);
+        delete myTcpServer;
+    } catch (std::exception& e) {
+        std::cerr << e.what() << std::endl;
     }
-
-    int port = atoi(argv[1]);
-
-    std::cout << argv[0] << " listen on port " << port << std::endl;
-    TcpServer *myTcpServer = new TcpServer(port);
-    delete myTcpServer;
 
     return 0;
 }
