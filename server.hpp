@@ -15,10 +15,10 @@ class TcpServer : private boost::noncopyable {
         ptrTcpConnection newConnection;
         std::size_t threadPoolSize;
 
+        void handleAccept(const boost::system::error_code& error);
+
     public:
         TcpServer(const unsigned short port, const std::size_t _threadPoolSize);
-
-        void handleAccept(const boost::system::error_code& error);
 
         void run();
 
