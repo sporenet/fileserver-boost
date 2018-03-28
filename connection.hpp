@@ -11,6 +11,9 @@
 
 class TcpConnection : public boost::enable_shared_from_this <TcpConnection> {
     private:
+        std::string userName;
+        std::string root;
+
         boost::asio::streambuf request;
         boost::asio::streambuf ack;
 
@@ -21,6 +24,9 @@ class TcpConnection : public boost::enable_shared_from_this <TcpConnection> {
 
         boost::array<char, 4096> buf;
         std::streamsize bytesReadTotal;
+
+        void handleUserName(const boost::system::error_code& error,
+                const std::size_t bytesTransferred);
 
         void handleRequest(const boost::system::error_code& error,
                 const std::size_t bytesTransferred);

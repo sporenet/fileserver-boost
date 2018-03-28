@@ -4,9 +4,9 @@
 #include <boost/bind.hpp>
 
 
-TcpClient::TcpClient(boost::asio::io_service& ioService, const std::string& server,
-        const std::string& port)
-    : resolver(ioService), socket(ioService) {
+TcpClient::TcpClient(boost::asio::io_service& ioService, const std::string& _userName,
+        const std::string& server, const std::string& port)
+    : userName(_userName), resolver(ioService), socket(ioService) {
         boost::asio::ip::tcp::resolver::query query(server, port);
         resolver.async_resolve(query, boost::bind(&TcpClient::handleResolve, this,
                     boost::asio::placeholders::error, boost::asio::placeholders::iterator));
@@ -27,7 +27,7 @@ void TcpClient::handleResolve(const boost::system::error_code& error,
 void TcpClient::handleConnect(const boost::system::error_code& error,
         boost::asio::ip::tcp::resolver::iterator myIterator) {
     if (!error) {
-        requestToServer();
+        userNameRequest();
     } else if (myIterator != boost::asio::ip::tcp::resolver::iterator()) {
         socket.close();
         boost::asio::ip::tcp::endpoint endpoint = *myIterator;
@@ -199,6 +199,17 @@ void TcpClient::handleFileRecv(const boost::system::error_code& error,
     }
 }
 
+void TcpClient::userNameRequest() {
+    std::ostream requestStream(&request);
+    requestStream << userName << "\n\n";
+    std::cout << "Request size: " << request.size() << "bytes" << std::endl;
+
+    async_write(socket, request,
+            boost::bind(&TcpClient::requestToServer, this));
+}
+
+
+
 void TcpClient::requestToServer() {
     std::cout << ">> ";
 
@@ -243,8 +254,13 @@ int main(int argc, char *argv[]) {
         return 0;
     }
 
+    std::string userName;
+
+    std::cout << "Username: ";
+    std::cin >> userName;
+
     boost::asio::io_service ioService;
-    TcpClient client(ioService, argv[1], argv[2]);
+    TcpClient client(ioService, userName, argv[1], argv[2]);
     ioService.run();
 
     return 0;

@@ -8,6 +8,8 @@
 
 class TcpClient {
     private:
+        const std::string userName;
+
         boost::asio::ip::tcp::resolver resolver;
         boost::asio::ip::tcp::socket socket;
 
@@ -22,7 +24,7 @@ class TcpClient {
         std::streamsize bytesReadTotal;
 
     public:
-        TcpClient(boost::asio::io_service& ioService,
+        TcpClient(boost::asio::io_service& ioService, const std::string& _userName,
                 const std::string& server, const std::string& port);
 
         void handleResolve(const boost::system::error_code& error,
@@ -44,6 +46,8 @@ class TcpClient {
 
         void handleFileRecv(const boost::system::error_code& error,
                 const std::size_t bytesTransferred, const std::size_t fileSize);
+
+        void userNameRequest();
 
         void requestToServer();
 };

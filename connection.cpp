@@ -1,4 +1,5 @@
 #include "connection.hpp"
+#include <dirent.h>
 #include <boost/bind.hpp>
 
 TcpConnection::TcpConnection(boost::asio::io_service& ioService)
@@ -7,7 +8,7 @@ TcpConnection::TcpConnection(boost::asio::io_service& ioService)
     void TcpConnection::start() {
         std::cout << __FUNCTION__ << std::endl;
         async_read_until(mySocket, request, "\n\n",
-                boost::bind(&TcpConnection::handleRequest,
+                boost::bind(&TcpConnection::handleUserName,
                     shared_from_this(), boost::asio::placeholders::error,
                     boost::asio::placeholders::bytes_transferred));
     }
@@ -15,6 +16,33 @@ TcpConnection::TcpConnection(boost::asio::io_service& ioService)
 boost::asio::ip::tcp::socket& TcpConnection::socket() {
     return mySocket;
 }
+
+void TcpConnection::handleUserName(const boost::system::error_code& error,
+        const std::size_t bytesTransferred) {
+    if (error) {
+        return handleError(__FUNCTION__, error);
+    }
+
+    std::cout << __FUNCTION__ << "(" << bytesTransferred << ")"
+        << ", in_avail = " << request.in_avail()
+        << ", size = " << request.size()
+        << std::endl;
+
+    std::istream requestStream(&request);
+
+    requestStream >> this->userName;
+    requestStream.read(buf.c_array(), 2);
+
+    // User name을 가지는 폴더 없다면 만들기!
+    mkdir(userName.c_str(), 0777);
+    this->root = userName + "/";
+
+    async_read_until(mySocket, request, "\n\n",
+            boost::bind(&TcpConnection::handleRequest,
+                shared_from_this(), boost::asio::placeholders::error,
+                boost::asio::placeholders::bytes_transferred));
+}
+
 
 void TcpConnection::handleRequest(const boost::system::error_code& error,
         const std::size_t bytesTransferred) {
@@ -30,24 +58,25 @@ void TcpConnection::handleRequest(const boost::system::error_code& error,
 
     std::istream requestStream(&request);
     std::string operation;
-    std::string filePath;
+    std::string fileName;
     std::size_t fileSize;
 
     requestStream >> operation;
     if (operation == "u") {
-        requestStream >> filePath;
+        requestStream >> fileName;
         requestStream >> fileSize;
         requestStream.read(buf.c_array(), 2);
 
         std::streamsize bytesRead = 0;
 
-        //std::cout << filePath << " size is " << fileSize << std::endl;
-        std::size_t pos = filePath.find_last_of('\\');
+        //std::cout << fileName << " size is " << fileSize << std::endl;
+        std::size_t pos = fileName.find_last_of('\\');
         if (pos != std::string::npos)
-            filePath = filePath.substr(pos + 1);
-        std::cout << "Request for upload " << filePath << ": "
+            fileName = fileName.substr(pos + 1);
+        std::cout << "Request for upload " << fileName << ": "
             << fileSize << "bytes" << std::endl;
 
+	std::string filePath = root + fileName;
         outFile.open(filePath.c_str(), std::ios_base::binary);
 
         // request stream의 잔여 바이트를 파일에 씀
@@ -84,9 +113,10 @@ void TcpConnection::handleRequest(const boost::system::error_code& error,
                         boost::asio::placeholders::bytes_transferred, fileSize));
         }
     } else if (operation == "d") {
-        requestStream >> filePath;
+        requestStream >> fileName;
         requestStream.read(buf.c_array(), 2);
 
+	std::string filePath = root + fileName;
         inFile.open(filePath.c_str(),
                 std::ios_base::binary | std::ios_base::ate);
 
@@ -101,7 +131,7 @@ void TcpConnection::handleRequest(const boost::system::error_code& error,
         bytesReadTotal = 0;
 
         std::ostream ackStream(&ack);
-        std::cout << "Request for download " << filePath << ": "
+        std::cout << "Request for download " << fileName << ": "
             << fileSize << "bytes" << std::endl;
 
         ackStream << fileSize << "\n\n";
@@ -145,6 +175,7 @@ void TcpConnection::handleFileSend(const boost::system::error_code& error) {
             boost::bind(&TcpConnection::handleFileSend, shared_from_this(),
                 boost::asio::placeholders::error));
 }
+
 void TcpConnection::handleFileRecv(const boost::system::error_code& error,
         std::size_t bytesTransferred, std::size_t fileSize) {
     if (error) {
