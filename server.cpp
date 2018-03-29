@@ -4,8 +4,7 @@
 #include <boost/bind.hpp>
 
 
-TcpServer::TcpServer(const unsigned short port, const std::size_t _threadPoolSize) :
-    threadPoolSize(_threadPoolSize),
+TcpServer::TcpServer(const unsigned short port) :
     acceptor(ioService, boost::asio::ip::tcp::endpoint(
                 boost::asio::ip::tcp::v4(), port), true),
     newConnection(new TcpConnection(ioService)) {
@@ -26,17 +25,7 @@ void TcpServer::handleAccept(const boost::system::error_code& error) {
 }
 
 void TcpServer::run() {
-    std::vector<boost::shared_ptr<boost::thread> > threads;
-
-    for (std::size_t i = 0; i < threadPoolSize; i++) {
-        boost::shared_ptr<boost::thread> thread(new boost::thread(
-                    boost::bind(&boost::asio::io_service::run, &ioService)));
-        threads.push_back(thread);
-    }
-
-    for (std::size_t i = 0; i < threads.size(); i++) {
-        threads[i]->join();
-    }
+    ioService.run();
 }
 
 void TcpServer::stop() {
@@ -46,16 +35,15 @@ void TcpServer::stop() {
 
 int main(int argc, char* argv[]) {
     try {
-        if (argc != 3) {
-            std::cout << "Usage: port# thread#" << std::endl;
+        if (argc != 2) {
+            std::cout << "Usage: port#" << std::endl;
             return 0;
         }
 
         const unsigned short port = atoi(argv[1]);
-        const std::size_t threadPoolSize = atoi(argv[2]);
 
         std::cout << argv[0] << " listen on port " << port << std::endl;
-        TcpServer myTcpServer(port, threadPoolSize);
+        TcpServer myTcpServer(port);
 
         myTcpServer.run();
         myTcpServer.stop();

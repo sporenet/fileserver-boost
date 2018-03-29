@@ -70,13 +70,13 @@ void TcpConnection::handleRequest(const boost::system::error_code& error,
         std::streamsize bytesRead = 0;
 
         //std::cout << fileName << " size is " << fileSize << std::endl;
-        std::size_t pos = fileName.find_last_of('\\');
+        std::size_t pos = fileName.find_last_of('/');
         if (pos != std::string::npos)
             fileName = fileName.substr(pos + 1);
         std::cout << "Request for upload " << fileName << ": "
             << fileSize << "bytes" << std::endl;
 
-	std::string filePath = root + fileName;
+        std::string filePath = root + fileName;
         outFile.open(filePath.c_str(), std::ios_base::binary);
 
         // request stream의 잔여 바이트를 파일에 씀
@@ -116,7 +116,7 @@ void TcpConnection::handleRequest(const boost::system::error_code& error,
         requestStream >> fileName;
         requestStream.read(buf.c_array(), 2);
 
-	std::string filePath = root + fileName;
+        std::string filePath = root + fileName;
         inFile.open(filePath.c_str(),
                 std::ios_base::binary | std::ios_base::ate);
 
@@ -136,7 +136,7 @@ void TcpConnection::handleRequest(const boost::system::error_code& error,
 
         ackStream << fileSize << "\n\n";
 
-        boost::asio::async_write(mySocket, ack,
+        async_write(mySocket, ack,
                 boost::bind(&TcpConnection::handleFileSend,
                     shared_from_this(), boost::asio::placeholders::error));
     } else if (operation == "l") {
@@ -169,7 +169,7 @@ void TcpConnection::handleFileSend(const boost::system::error_code& error) {
     std::cout << __FUNCTION__ << " reads " << bytesRead << "bytes, total "
         << bytesReadTotal << "bytes" << std::endl;
 
-    boost::asio::async_write(mySocket,
+    async_write(mySocket,
             boost::asio::buffer(buf.c_array(), bytesRead),
             boost::asio::transfer_exactly(bytesRead),
             boost::bind(&TcpConnection::handleFileSend, shared_from_this(),
