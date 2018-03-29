@@ -36,6 +36,8 @@ class TcpConnection : public boost::enable_shared_from_this <TcpConnection> {
         void handleFileRecv(const boost::system::error_code& error,
                 std::size_t bytesTransferred, std::size_t fileSize);
 
+        void handleList(const boost::system::error_code& error);
+
         void handleError(const std::string& functionName,
                 const boost::system::error_code& error);
 

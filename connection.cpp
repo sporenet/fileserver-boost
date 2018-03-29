@@ -35,7 +35,7 @@ void TcpConnection::handleUserName(const boost::system::error_code& error,
 
     // User name을 가지는 폴더 없다면 만들기!
     mkdir(userName.c_str(), 0777);
-    this->root = userName + "/";
+    root = userName + "/";
 
     async_read_until(mySocket, request, "\n\n",
             boost::bind(&TcpConnection::handleRequest,
@@ -140,7 +140,56 @@ void TcpConnection::handleRequest(const boost::system::error_code& error,
                 boost::bind(&TcpConnection::handleFileSend,
                     shared_from_this(), boost::asio::placeholders::error));
     } else if (operation == "l") {
-        // Not implemented
+        requestStream.read(buf.c_array(), 2);
+
+        DIR *dir;
+        struct dirent *ent;
+        FILE *fp = NULL;
+        std::size_t fileSize;
+        int fileCount = 0;
+        std::string fileName, filePath;
+
+        if ((dir = opendir(root.c_str())) == NULL) {
+            std::cerr << "opendir error" << std::endl;
+            exit(1);
+        }
+
+        while ((ent = readdir(dir)) != NULL) {
+            if (strcmp(ent->d_name, ".") == 0 or strcmp(ent->d_name, "..") == 0)
+                continue;
+            fileCount++;
+        }
+
+        closedir(dir);
+
+        if ((dir = opendir(root.c_str())) != NULL) {
+            std::ostream ackStream(&ack);
+            ackStream << fileCount << "\n";
+
+            while ((ent = readdir(dir)) != NULL) {
+                fileName = ent->d_name;
+                filePath = root + fileName;
+
+                fp = fopen(filePath.c_str(), "rb");
+                fseek(fp, 0, SEEK_END);
+                fileSize = ftell(fp);
+                fclose(fp);
+
+                if (strcmp(fileName.c_str(), ".") == 0 || strcmp(fileName.c_str(), "..") == 0)
+                    continue;
+
+                ackStream << fileName << "\n" << fileSize << "\n";
+            }
+            ackStream << "\n";
+            closedir(dir);
+        } else {
+            std::cerr << "opendir error" << std::endl;
+            exit(1);
+        }
+
+        async_write(mySocket, ack,
+                boost::bind(&TcpConnection::handleList,
+                    shared_from_this(), boost::asio::placeholders::error));
     }
 }
 
@@ -212,6 +261,17 @@ void TcpConnection::handleFileRecv(const boost::system::error_code& error,
                     shared_from_this(), boost::asio::placeholders::error,
                     boost::asio::placeholders::bytes_transferred, fileSize));
     }
+}
+
+void TcpConnection::handleList(const boost::system::error_code& error) {
+    if (error) {
+        return handleError(__FUNCTION__, error);
+    }
+
+    async_read_until(mySocket, request, "\n\n",
+            boost::bind(&TcpConnection::handleRequest,
+                shared_from_this(), boost::asio::placeholders::error,
+                boost::asio::placeholders::bytes_transferred));
 }
 
 void TcpConnection::handleError(const std::string& functionName,

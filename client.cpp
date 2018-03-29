@@ -83,6 +83,17 @@ void TcpClient::fileRecvRequest(const std::string& fileName) {
                 boost::asio::placeholders::error));
 }
 
+void TcpClient::listRequest() {
+    std::ostream requestStream(&request);
+    requestStream << "l\n\n";
+//    std::cout << "Request size: " << request.size()
+//        << "bytes" << std::endl;
+
+    async_write(socket, request,
+            boost::bind(&TcpClient::handleListAckSub, this,
+                boost::asio::placeholders::error));
+}
+
 void TcpClient::handleFileSend(const boost::system::error_code& error) {
     if (!error) {
         upFile.read(buf.c_array(), (std::streamsize)buf.size());
@@ -117,15 +128,13 @@ void TcpClient::handleFileRecvAckSub(const boost::system::error_code& error) {
     if (!error) {
         async_read_until(socket, ack, "\n\n",
                 boost::bind(&TcpClient::handleFileRecvAck, this,
-                    boost::asio::placeholders::error,
-                    boost::asio::placeholders::bytes_transferred));
+                    boost::asio::placeholders::error));
     } else {
         std::cerr << "Error: " << error.message() << std::endl;
     }
 }
 
-void TcpClient::handleFileRecvAck(const boost::system::error_code& error,
-        const std::size_t bytesTransferred) {
+void TcpClient::handleFileRecvAck(const boost::system::error_code& error) {
     if (!error) {
         std::istream ackStream(&ack);
 //        std::cout << "Ack size: " << ack.size() << "bytes" << std::endl;
@@ -151,6 +160,7 @@ void TcpClient::handleFileRecvAck(const boost::system::error_code& error,
         if (remainBytes == 0) {
             // 다 읽음
             downFile.close();
+            std::cout << "Done" << std::endl;
             return requestToServer();
         } else if (remainBytes >= buf.size()) {
             // 읽어야 될 남은 양이 buf.size()보다 크거나 같음
@@ -205,6 +215,47 @@ void TcpClient::handleFileRecv(const boost::system::error_code& error,
     }
 }
 
+void TcpClient::handleListAckSub(const boost::system::error_code& error) {
+    if (!error) {
+        async_read_until(socket, ack, "\n\n",
+                boost::bind(&TcpClient::handleListAck, this,
+                    boost::asio::placeholders::error));
+    } else {
+        std::cerr << "Error: " << error.message() << std::endl;
+    }
+}
+
+void TcpClient::handleListAck(const boost::system::error_code& error) {
+    if (!error) {
+        std::istream ackStream(&ack);
+
+        int fileCount;
+        std::string fileName;
+        std::size_t fileSize;
+
+        ackStream >> fileCount;
+        std::cout << fileCount << " files\n\n";
+
+        std::cout.setf(std::ios::left);
+        std::cout.width(15);
+        std::cout << "FILE NAME" << "FILE SIZE" << std::endl;
+
+        for (int i = 0; i < fileCount; i++) {
+            ackStream >> fileName;
+            ackStream >> fileSize;
+
+            std::cout.setf(std::ios::left);
+            std::cout.width(15);
+            std::cout << fileName << fileSize << std::endl;
+        }
+
+        ackStream.read(buf.c_array(), 2);
+        return requestToServer();
+    } else {
+        std::cerr << "Error: " << error.message() << std::endl;
+    }
+}
+
 void TcpClient::userNameRequest() {
     std::ostream requestStream(&request);
     requestStream << userName << "\n\n";
@@ -213,8 +264,6 @@ void TcpClient::userNameRequest() {
     async_write(socket, request,
             boost::bind(&TcpClient::requestToServer, this));
 }
-
-
 
 void TcpClient::requestToServer() {
     std::cout << ">> ";
@@ -233,7 +282,7 @@ void TcpClient::requestToServer() {
     // List
     if (operation == "list" or operation == "ls") {
         // Not Implemented
-        return requestToServer();
+        return listRequest();
     }
 
     // Upload

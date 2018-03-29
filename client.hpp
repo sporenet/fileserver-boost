@@ -37,15 +37,20 @@ class TcpClient {
 
         void fileRecvRequest(const std::string& fileName);
 
+        void listRequest();
+
         void handleFileSend(const boost::system::error_code& error);
 
         void handleFileRecvAckSub(const boost::system::error_code& error);
 
-        void handleFileRecvAck(const boost::system::error_code& error,
-                const std::size_t bytesTransferred);
+        void handleFileRecvAck(const boost::system::error_code& error);
 
         void handleFileRecv(const boost::system::error_code& error,
                 const std::size_t bytesTransferred, const std::size_t fileSize);
+
+        void handleListAckSub(const boost::system::error_code& error);
+
+        void handleListAck(const boost::system::error_code& error);
 
         void userNameRequest();
 
