@@ -51,10 +51,12 @@ void TcpClient::fileSendRequest(const std::string& fileName) {
 
     std::ostream requestStream(&request);
     requestStream << "u\n" << fileName << "\n" << fileSize << "\n\n";
-    std::cout << "Request size: " << request.size()
-        << "bytes" << std::endl;
+//    std::cout << "Request size: " << request.size()
+//        << "bytes" << std::endl;
 
     bytesReadTotal = 0;
+
+    std::cout << fileName << " is being uploaded... " << std::flush;
 
     async_write(socket, request,
             boost::bind(&TcpClient::handleFileSend, this,
@@ -64,8 +66,8 @@ void TcpClient::fileSendRequest(const std::string& fileName) {
 void TcpClient::fileRecvRequest(const std::string& fileName) {
     std::ostream requestStream(&request);
     requestStream << "d\n" << fileName << "\n\n";
-    std::cout << "Request size: " << request.size()
-        << "bytes" << std::endl;
+//    std::cout << "Request size: " << request.size()
+//        << "bytes" << std::endl;
 
     downFile.open(fileName.c_str(), std::ios_base::binary);
 
@@ -73,6 +75,8 @@ void TcpClient::fileRecvRequest(const std::string& fileName) {
         std::cerr << "Failed to open " << fileName << std::endl;
         return;
     }
+
+    std::cout << fileName << " is being downloaded... " << std::flush;
 
     async_write(socket, request,
             boost::bind(&TcpClient::handleFileRecvAckSub, this,
@@ -92,12 +96,13 @@ void TcpClient::handleFileSend(const boost::system::error_code& error) {
             return;
         } else if (bytesRead == 0) {
             upFile.close();
+            std::cout << "Done" << std::endl;
             requestToServer();
             return;
         }
 
-        std::cout << "Send " << bytesRead << "bytes, total "
-            << bytesReadTotal << "bytes" << std::endl;
+//        std::cout << "Send " << bytesRead << "bytes, total "
+//            << bytesReadTotal << "bytes" << std::endl;
 
         async_write(socket, boost::asio::buffer(buf.c_array(), bytesRead),
                 boost::asio::transfer_exactly(bytesRead),
@@ -123,7 +128,7 @@ void TcpClient::handleFileRecvAck(const boost::system::error_code& error,
         const std::size_t bytesTransferred) {
     if (!error) {
         std::istream ackStream(&ack);
-        std::cout << "Ack size: " << ack.size() << "bytes" << std::endl;
+//        std::cout << "Ack size: " << ack.size() << "bytes" << std::endl;
 
         std::size_t fileSize;
         ackStream >> fileSize;
@@ -136,8 +141,8 @@ void TcpClient::handleFileRecvAck(const boost::system::error_code& error,
         do {
             ackStream.read(buf.c_array(), (std::streamsize)buf.size());
             bytesRead += ackStream.gcount();
-            std::cout << "Writes " << ackStream.gcount() << "bytes, total "
-                << bytesRead << "bytes" << std::endl;
+//            std::cout << "Writes " << ackStream.gcount() << "bytes, total "
+//                << bytesRead << "bytes" << std::endl;
             downFile.write(buf.c_array(), ackStream.gcount());
         } while (ackStream.gcount() > 0);
 
@@ -170,11 +175,12 @@ void TcpClient::handleFileRecv(const boost::system::error_code& error,
     if (!error) {
         if (bytesTransferred >= 0) {
             downFile.write(buf.c_array(), (std::streamsize)bytesTransferred);
-            std::cout << "Writes " << bytesTransferred << "bytes, total "
-                << downFile.tellp() << "bytes" << std::endl;
+//            std::cout << "Writes " << bytesTransferred << "bytes, total "
+//                << downFile.tellp() << "bytes" << std::endl;
 
             if (downFile.tellp() >= (std::streamsize)fileSize) {
                 downFile.close();
+                std::cout << "Done" << std::endl;
                 return requestToServer();
             }
         }
@@ -202,7 +208,7 @@ void TcpClient::handleFileRecv(const boost::system::error_code& error,
 void TcpClient::userNameRequest() {
     std::ostream requestStream(&request);
     requestStream << userName << "\n\n";
-    std::cout << "Request size: " << request.size() << "bytes" << std::endl;
+//    std::cout << "Request size: " << request.size() << "bytes" << std::endl;
 
     async_write(socket, request,
             boost::bind(&TcpClient::requestToServer, this));
