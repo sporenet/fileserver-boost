@@ -40,6 +40,4 @@
 *.bak
 
 # Test file
-/client1/*
-/client2/*
-/server/*
+*.test
