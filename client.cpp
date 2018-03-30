@@ -56,7 +56,7 @@ void TcpClient::fileSendRequest(const std::string& fileName) {
 
     bytesReadTotal = 0;
 
-    std::cout << fileName << " is being uploaded... " << std::flush;
+    std::cout << "Uploading " << fileName << "... " << std::flush;
 
     async_write(socket, request,
             boost::bind(&TcpClient::handleFileSend, this,
@@ -76,7 +76,7 @@ void TcpClient::fileRecvRequest(const std::string& fileName) {
         return;
     }
 
-    std::cout << fileName << " is being downloaded... " << std::flush;
+    std::cout << "Downloading " << fileName << "... " << std::flush;
 
     async_write(socket, request,
             boost::bind(&TcpClient::handleFileRecvAckSub, this,
