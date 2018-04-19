@@ -1,0 +1,22 @@
+[
+{
+  "directory": "/home/jhpark123/Workspace/fileserver-boost",
+  "command": "/usr/bin/c++      -o CMakeFiles/client1/client.out.dir/client.o -c /home/jhpark123/Workspace/fileserver-boost/client.cpp",
+  "file": "/home/jhpark123/Workspace/fileserver-boost/client.cpp"
+},
+{
+  "directory": "/home/jhpark123/Workspace/fileserver-boost",
+  "command": "/usr/bin/c++      -o CMakeFiles/client2/client.out.dir/client.o -c /home/jhpark123/Workspace/fileserver-boost/client.cpp",
+  "file": "/home/jhpark123/Workspace/fileserver-boost/client.cpp"
+},
+{
+  "directory": "/home/jhpark123/Workspace/fileserver-boost",
+  "command": "/usr/bin/c++      -o CMakeFiles/server/server.out.dir/server.o -c /home/jhpark123/Workspace/fileserver-boost/server.cpp",
+  "file": "/home/jhpark123/Workspace/fileserver-boost/server.cpp"
+},
+{
+  "directory": "/home/jhpark123/Workspace/fileserver-boost",
+  "command": "/usr/bin/c++      -o CMakeFiles/server/server.out.dir/connection.o -c /home/jhpark123/Workspace/fileserver-boost/connection.cpp",
+  "file": "/home/jhpark123/Workspace/fileserver-boost/connection.cpp"
+}
+]
